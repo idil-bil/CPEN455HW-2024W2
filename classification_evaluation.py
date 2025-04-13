@@ -24,7 +24,22 @@ NUM_CLASSES = len(my_bidict)
 def get_label(model, model_input, device):
     # Write your code here, replace the random classifier with your trained model
     # and return the predicted label, which is a tensor of shape (batch_size,)
-    answer = model(model_input, device)
+    batch_size,_,_,_ = model_input.size()
+    min_losses = [float('inf')] * batch_size 
+    result = [0] * batch_size
+    class_names = ['Class0','Class1','Class2','Class3']
+
+    for class_num in range(NUM_CLASSES):
+      label_batch = [class_names[class_num]] * batch_size
+      predictions = model(model_input, labels=label_batch)
+      calculated_loss = discretized_mix_logistic_loss(model_input, predictions)
+
+      for i in range(batch_size):
+        if calculated_loss.item() < min_losses[i]:
+          min_losses[i] = calculated_loss.item()
+          result[i] = class_num
+
+    answer = torch.tensor(result).to(device)
     return answer
 # End of your code
 
@@ -68,7 +83,7 @@ if __name__ == '__main__':
 
     #TODO:Begin of your code
     #You should replace the random classifier with your trained model
-    model = random_classifier(NUM_CLASSES)
+    model = PixelCNN(nr_resnet=1, nr_filters=40, input_channels=3, nr_logistic_mix=5)
     #End of your code
     
     model = model.to(device)

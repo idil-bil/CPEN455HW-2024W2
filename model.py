@@ -59,6 +59,9 @@ class PixelCNN(nn.Module):
         else :
             raise Exception('right now only concat elu is supported as resnet nonlinearity.')
 
+        num_labels = 4
+        embedding_dim = 32*32*3
+        self.embedding = nn.Embedding(num_labels, embedding_dim)
         self.nr_filters = nr_filters
         self.input_channels = input_channels
         self.nr_logistic_mix = nr_logistic_mix
@@ -97,7 +100,22 @@ class PixelCNN(nn.Module):
         self.init_padding = None
 
 
-    def forward(self, x, sample=False):
+    def forward(self, x, sample=False, labels=None):
+        label_to_number = {'Class0': 0, 'Class1': 1, 'Class2': 2, 'Class3': 3}  
+        B,C,H,W = x.shape
+        
+        if labels is not None:
+            labels_number = []
+
+            for label in labels: 
+              labels_number.append(label_to_number[label])
+
+            labels_tensor = torch.tensor(labels_number).cuda()
+            labels_tensor = labels_tensor.long()
+            label_embeds = self.embedding(labels_tensor)  
+            label_embeds = label_embeds.view(B, 3, 32, 32)  
+            x = x + label_embeds
+
         # similar as done in the tf repo :
         if self.init_padding is not sample:
             xs = [int(y) for y in x.size()]
